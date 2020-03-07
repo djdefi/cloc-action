@@ -1,6 +1,6 @@
 # action.yml
 name: 'Count Lines of Code (cloc)'
-description: 'Count Lines of Code with https://github.com/AlDanial/cloc#stable-release'
+description: 'Count Lines of Code with https://github.com/AlDanial/cloc'
 
 runs:
   using: 'docker'
