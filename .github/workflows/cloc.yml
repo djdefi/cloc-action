@@ -26,10 +26,10 @@ jobs:
 
     # Runs a set of commands using the runners shell
     - name: Count Lines of Code
-      run: cloc $(git rev-parse HEAD) | tee -a cloc.txt
+      run: cloc $(git rev-parse HEAD) | tee -a cloc-$(git rev-parse HEAD).txt
     
     - name: Upload cloc output as a build artifact
       uses: actions/upload-artifact@v1
       with:
-        name: cloc
-        path: cloc.txt
+        name: cloc-$(git rev-parse HEAD)
+        path: cloc-$(git rev-parse HEAD).txt
