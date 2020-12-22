@@ -1,12 +1,12 @@
 name: Count Lines of Code
 
 # Controls when the action will run. Triggers the workflow on push or pull request 
-# events but only for the master branch
+# events but only for the main branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -22,7 +22,7 @@ jobs:
 
     # Runs djdefi/cloc-action@master
     - name: Count Lines of Code (cloc)
-      uses: djdefi/cloc-action@master
+      uses: djdefi/cloc-action@main
     
     #- name: Upload cloc output as a build artifact
     #  uses: actions/upload-artifact@v2
