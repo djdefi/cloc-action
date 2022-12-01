@@ -1,4 +1,4 @@
-FROM alpine:3.16
+FROM alpine:3.17
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/entrypoint.sh"]
