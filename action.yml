@@ -1,11 +1,18 @@
 # action.yml
 name: 'Count Lines of Code (cloc)'
 description: 'Count Lines of Code with https://github.com/AlDanial/cloc'
+inputs:
+  options:
+    description: 'Additional options to pass to cloc'
+    required: false
+    default: ''
 
 runs:
   using: 'docker'
   image: 'Dockerfile'
- 
+  args:
+    - ${{ inputs.options }}
+
 branding:
   icon: 'code'  
   color: 'blue'
