@@ -29,8 +29,6 @@ jobs:
       with:
           options: --exclude-lang=YML --md --report-file=cloc.md
     
-    #- name: Upload cloc output as a build artifact
-    #  uses: actions/upload-artifact@v2
-    #  with:
-    #    name: cloc
-    #    path: cloc.txt
+    - name: Output report .md
+      run: |
+        cat cloc.md
