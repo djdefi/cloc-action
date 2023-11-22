@@ -27,7 +27,7 @@ jobs:
     - name: Count Lines of Code with additional options
       uses: djdefi/cloc-action@main
       with:
-          options: --exclude-lang=YML --md --report-file=cloc.md
+          options: --exclude-lang=YAML --md --report-file=cloc.md
     
     - name: Output report .md
       run: |
