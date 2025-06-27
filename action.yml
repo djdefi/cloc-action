@@ -45,16 +45,38 @@ runs:
         $ErrorActionPreference = "Stop"
         Write-Output "Installing cloc on Windows..."
         
+        # First try winget (Windows Package Manager) which is more reliable in GitHub Actions
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+          Write-Output "Using winget to install cloc..."
+          try {
+            winget install --id=AlDanial.Cloc --exact --silent --accept-package-agreements --accept-source-agreements
+            Write-Output "✓ cloc installed successfully with winget"
+            cloc --version
+            exit 0
+          }
+          catch {
+            Write-Output "winget installation failed, falling back to chocolatey..."
+          }
+        }
+        
+        # Fallback to chocolatey
         # Check if chocolatey is available
         if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
           Write-Output "Chocolatey not found, installing..."
           Set-ExecutionPolicy Bypass -Scope Process -Force
           [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          
+          # Use Invoke-RestMethod instead of DownloadString for better reliability
+          $installScript = Invoke-RestMethod -Uri 'https://community.chocolatey.org/install.ps1'
+          Invoke-Expression $installScript
+          
+          # Refresh environment variables
           $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+          refreshenv
         }
         
-        choco install cloc -y
+        Write-Output "Installing cloc with chocolatey..."
+        choco install cloc -y --no-progress
         Write-Output "✓ cloc installed successfully"
         cloc --version
     
