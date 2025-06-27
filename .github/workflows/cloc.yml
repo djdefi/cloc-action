@@ -4,7 +4,7 @@ name: Count Lines of Code
 # events but only for the main branch
 on:
   push:
-    branches: [ main ]
+    branches: [ main, copilot/fix-30 ]
   pull_request:
     branches: [ main ]
 
