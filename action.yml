@@ -14,40 +14,110 @@ runs:
       if: runner.os == 'Linux'
       shell: bash
       run: |
+        set -e
+        echo "Installing cloc on Linux..."
         sudo apt-get update
         sudo apt-get install -y cloc git
+        echo "✓ cloc installed successfully"
+        cloc --version
     
     - name: Install cloc on macOS
       if: runner.os == 'macOS'
       shell: bash
       run: |
+        set -e
+        echo "Installing cloc on macOS..."
+        # Check if brew is available, install if not
+        if ! command -v brew &> /dev/null; then
+          echo "Homebrew not found, installing..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.bash_profile
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+        fi
         brew install cloc
+        echo "✓ cloc installed successfully"
+        cloc --version
     
     - name: Install cloc on Windows
       if: runner.os == 'Windows'
       shell: powershell
       run: |
+        $ErrorActionPreference = "Stop"
+        Write-Output "Installing cloc on Windows..."
+        
+        # Check if chocolatey is available
+        if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+          Write-Output "Chocolatey not found, installing..."
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+          $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+        }
+        
         choco install cloc -y
+        Write-Output "✓ cloc installed successfully"
+        cloc --version
+    
+    - name: Verify cloc installation (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        if ! command -v cloc &> /dev/null; then
+          echo "❌ cloc installation failed"
+          exit 1
+        fi
+        echo "✓ cloc is available and ready to use"
+    
+    - name: Verify cloc installation (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        if (!(Get-Command cloc -ErrorAction SilentlyContinue)) {
+          Write-Output "❌ cloc installation failed"
+          exit 1
+        }
+        Write-Output "✓ cloc is available and ready to use"
     
     - name: Trust workspace and run cloc (Linux/macOS)
       if: runner.os != 'Windows'
       shell: bash
       run: |
+        set -e
+        echo "Running cloc on ${{ runner.os }}..."
         git config --global --add safe.directory "$GITHUB_WORKSPACE"
-        cloc $(git rev-parse HEAD) ${{ inputs.options }} | tee -a cloc.txt
+        commit=$(git rev-parse HEAD)
+        echo "Analyzing commit: $commit"
+        
+        if [ -n "${{ inputs.options }}" ]; then
+          echo "Running: cloc $commit ${{ inputs.options }}"
+          cloc $commit ${{ inputs.options }} | tee -a cloc.txt
+        else
+          echo "Running: cloc $commit"
+          cloc $commit | tee -a cloc.txt
+        fi
+        
+        echo "✓ cloc analysis completed"
     
     - name: Trust workspace and run cloc (Windows)
       if: runner.os == 'Windows'
       shell: powershell
       run: |
+        $ErrorActionPreference = "Stop"
+        Write-Output "Running cloc on Windows..."
         git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
         $commit = git rev-parse HEAD
+        Write-Output "Analyzing commit: $commit"
+        
         $options = "${{ inputs.options }}"
         if ($options) {
-          cloc $commit $options | Tee-Object -FilePath cloc.txt -Append
+          Write-Output "Running: cloc $commit $options"
+          Invoke-Expression "cloc $commit $options" | Tee-Object -FilePath cloc.txt -Append
         } else {
-          cloc $commit | Tee-Object -FilePath cloc.txt -Append
+          Write-Output "Running: cloc $commit"
+          Invoke-Expression "cloc $commit" | Tee-Object -FilePath cloc.txt -Append
         }
+        
+        Write-Output "✓ cloc analysis completed"
 
 branding:
   icon: 'code'  
