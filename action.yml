@@ -45,64 +45,39 @@ runs:
         $ErrorActionPreference = "Stop"
         Write-Output "Installing cloc on Windows..."
         
-        # Try chocolatey first as it's more reliable than winget in GitHub Actions
-        # Check if chocolatey is available
-        if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
-          Write-Output "Chocolatey not found, installing..."
-          Set-ExecutionPolicy Bypass -Scope Process -Force
-          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-          
-          try {
-            # Download and install chocolatey
-            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-            
-            # Manually refresh PATH
-            $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
-            
-            # Import chocolatey profile if it exists
-            $chocProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-            if (Test-Path $chocProfile) {
-              Import-Module $chocProfile
-            }
-            
-            Write-Output "✓ Chocolatey installed successfully"
-          }
-          catch {
-            Write-Output "Failed to install chocolatey: $_"
-            exit 1
-          }
-        }
+        # Create a directory for cloc
+        $clocDir = "$env:USERPROFILE\cloc"
+        New-Item -ItemType Directory -Path $clocDir -Force | Out-Null
+        $clocPath = "$clocDir\cloc.exe"
         
-        # Install cloc using chocolatey
-        Write-Output "Installing cloc with chocolatey..."
+        # Try direct download from GitHub releases first
         try {
-          choco install cloc -y --no-progress --force
+          Write-Output "Downloading cloc from GitHub releases..."
+          $downloadUrl = "https://github.com/AlDanial/cloc/releases/download/v2.02/cloc-2.02.exe"
+          Invoke-WebRequest -Uri $downloadUrl -OutFile $clocPath -UseBasicParsing
           
-          # Refresh PATH again after installation
-          $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+          # Add to PATH for this session
+          $env:PATH = "$clocDir;$env:PATH"
           
-          Write-Output "✓ cloc installed successfully"
-          cloc --version
+          Write-Output "✓ cloc downloaded successfully"
+          & $clocPath --version
         }
         catch {
-          Write-Output "Chocolatey installation failed, trying winget as fallback..."
+          Write-Output "GitHub download failed, trying chocolatey fallback..."
           
-          # Try winget as fallback
-          if (Get-Command winget -ErrorAction SilentlyContinue) {
-            try {
-              winget install --id=AlDanial.Cloc --exact --silent --accept-package-agreements --accept-source-agreements
-              Write-Output "✓ cloc installed successfully with winget"
-              cloc --version
-            }
-            catch {
-              Write-Output "Both chocolatey and winget failed to install cloc"
-              Write-Output "Error: $_"
-              exit 1
-            }
-          } else {
-            Write-Output "winget not available, installation failed"
-            exit 1
+          # Fallback to chocolatey if direct download fails
+          if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
+            Write-Output "Installing chocolatey..."
+            Set-ExecutionPolicy Bypass -Scope Process -Force
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+            Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+            $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
           }
+          
+          choco install cloc -y --no-progress
+          $env:PATH = [Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [Environment]::GetEnvironmentVariable("PATH","User")
+          Write-Output "✓ cloc installed via chocolatey"
+          cloc --version
         }
     
     - name: Verify cloc installation (Linux/macOS)
@@ -119,11 +94,21 @@ runs:
       if: runner.os == 'Windows'
       shell: powershell
       run: |
-        if (!(Get-Command cloc -ErrorAction SilentlyContinue)) {
+        # Check if cloc is available in PATH or in our custom directory
+        $clocDir = "$env:USERPROFILE\cloc"
+        $clocPath = "$clocDir\cloc.exe"
+        
+        if (Get-Command cloc -ErrorAction SilentlyContinue) {
+          Write-Output "✓ cloc is available in PATH"
+        } elseif (Test-Path $clocPath) {
+          # Add our custom directory to PATH if cloc is there
+          $env:PATH = "$clocDir;$env:PATH"
+          Write-Output "✓ cloc is available in custom directory"
+        } else {
           Write-Output "❌ cloc installation failed"
           exit 1
         }
-        Write-Output "✓ cloc is available and ready to use"
+        Write-Output "✓ cloc is ready to use"
     
     - name: Trust workspace and run cloc (Linux/macOS)
       if: runner.os != 'Windows'
@@ -151,6 +136,13 @@ runs:
       run: |
         $ErrorActionPreference = "Stop"
         Write-Output "Running cloc on Windows..."
+        
+        # Ensure cloc is in PATH (handle custom directory)
+        $clocDir = "$env:USERPROFILE\cloc"
+        if (Test-Path "$clocDir\cloc.exe") {
+          $env:PATH = "$clocDir;$env:PATH"
+        }
+        
         git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
         $commit = git rev-parse HEAD
         Write-Output "Analyzing commit: $commit"
