@@ -8,10 +8,46 @@ inputs:
     default: ''
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
-  args:
-    - ${{ inputs.options }}
+  using: 'composite'
+  steps:
+    - name: Install cloc on Linux
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cloc git
+    
+    - name: Install cloc on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install cloc
+    
+    - name: Install cloc on Windows
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        choco install cloc -y
+    
+    - name: Trust workspace and run cloc (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        cloc $(git rev-parse HEAD) ${{ inputs.options }} | tee -a cloc.txt
+    
+    - name: Trust workspace and run cloc (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        git config --global --add safe.directory "$env:GITHUB_WORKSPACE"
+        $commit = git rev-parse HEAD
+        $options = "${{ inputs.options }}"
+        if ($options) {
+          cloc $commit $options | Tee-Object -FilePath cloc.txt -Append
+        } else {
+          cloc $commit | Tee-Object -FilePath cloc.txt -Append
+        }
 
 branding:
   icon: 'code'  
