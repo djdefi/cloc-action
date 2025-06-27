@@ -1,6 +1,18 @@
 # cloc-action
 GitHub Action to Count Lines of Code with https://github.com/AlDanial/cloc
 
+## Cross-Platform Support
+
+This action supports all GitHub Actions runner types:
+- ✅ **Linux** (`ubuntu-latest`, `ubuntu-20.04`, `ubuntu-22.04`)
+- ✅ **macOS** (`macos-latest`, `macos-11`, `macos-12`)
+- ✅ **Windows** (`windows-latest`, `windows-2019`, `windows-2022`)
+
+The action automatically installs `cloc` using the appropriate package manager for each platform:
+- Linux: `apt-get`
+- macOS: `brew`
+- Windows: `chocolatey`
+
 ## Example workflow:
 
 ```yml
@@ -24,11 +36,33 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # Runs djdefi/cloc-action
     - name: Count Lines of Code (cloc)
-      uses: djdefi/cloc-action@6
+      uses: djdefi/cloc-action@main
+```
+
+### Cross-Platform Example
+
+```yml
+name: Count Lines of Code (Cross-Platform)
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  cloc:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Count Lines of Code (cloc)
+      uses: djdefi/cloc-action@main
 ```
 
 ## Additional Options
