@@ -22,12 +22,12 @@ jobs:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v4
 
-    # Runs djdefi/cloc-action@main
+    # Runs the local action to test the PR changes
     - name: Count Lines of Code (cloc)
-      uses: djdefi/cloc-action@main
+      uses: ./
     
     - name: Count Lines of Code with additional options
-      uses: djdefi/cloc-action@main
+      uses: ./
       with:
           options: --exclude-lang=YAML --md --report-file=cloc.md
     
