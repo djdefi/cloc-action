@@ -51,21 +51,27 @@ runs:
         $clocPath = "$clocDir\cloc.exe"
         
         # Try direct download from GitHub releases first
+        Write-Output "Downloading cloc from GitHub releases..."
+        $downloadUrl = "https://github.com/AlDanial/cloc/releases/download/v2.02/cloc-2.02.exe"
+        
+        $downloadSucceeded = $false
         try {
-          Write-Output "Downloading cloc from GitHub releases..."
-          $downloadUrl = "https://github.com/AlDanial/cloc/releases/download/v2.02/cloc-2.02.exe"
           Invoke-WebRequest -Uri $downloadUrl -OutFile $clocPath -UseBasicParsing
-          
           # Add to PATH for this session
           $env:PATH = "$clocDir;$env:PATH"
-          
           Write-Output "✓ cloc downloaded successfully"
           & $clocPath --version
+          $downloadSucceeded = $true
+        } catch {
+          Write-Output "GitHub download failed: $_"
+          $downloadSucceeded = $false
         }
-        catch {
-          Write-Output "GitHub download failed, trying chocolatey fallback..."
+        
+        # Fallback to chocolatey if direct download failed
+        if (-not $downloadSucceeded) {
+          Write-Output "Trying chocolatey fallback..."
           
-          # Fallback to chocolatey if direct download fails
+          # Install chocolatey if not available
           if (!(Get-Command choco -ErrorAction SilentlyContinue)) {
             Write-Output "Installing chocolatey..."
             Set-ExecutionPolicy Bypass -Scope Process -Force
